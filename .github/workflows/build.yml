@@ -10,10 +10,9 @@ on:
       - '**.md'
       - '.gitignore'
       - 'docs/**'
-
-  # 推送 tag 时构建并创建 Release
-  tags:
-    - 'v*'
+    # 推送 tag 时构建并创建 Release
+    tags:
+      - 'v*'
 
   # 手动触发
   workflow_dispatch:
@@ -84,13 +83,21 @@ jobs:
       # 6. 配置签名 (从 GitHub Secrets 解码 keystore)
       # ============================================================
       - name: Decode Keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "未配置签名 Secrets，将使用 debug 签名"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
           echo "storeFile=app/keystore.jks" > android/key.properties
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "storePassword=$KEYSTORE_PASSWORD" >> android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
           echo "key.properties 已生成"
 
       # ============================================================
